@@ -74,3 +74,28 @@
  const box=document.querySelector('.art-gallery');box.addEventListener('mouseenter',()=>hover=true);box.addEventListener('mouseleave',()=>hover=false);
  images.forEach(item=>{const img=new Image();img.src=item.src;});sync();setInterval(()=>{const r=box.getBoundingClientRect();if(!paused&&!hover&&!document.hidden&&r.bottom>0&&r.top<window.innerHeight)show(index+1);},5500);
 })();
+
+
+(() => {
+  const view=document.querySelector('.catalog-viewport'),set=view.querySelector('.catalog-set'),pause=document.getElementById('catalog-pause');
+  const motion=matchMedia('(prefers-reduced-motion: reduce)');
+  let paused=motion.matches,hover=false,last=0,manualUntil=0,visible=false;
+  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;});observer.observe(view);
+  function sync(){pause.textContent=paused?'Reproduzir':'Pausar';pause.setAttribute('aria-pressed',String(paused));}
+  pause.addEventListener('click',()=>{paused=!paused;sync();});sync();
+  view.addEventListener('mouseenter',()=>hover=true);view.addEventListener('mouseleave',()=>hover=false);view.addEventListener('focusin',()=>hover=true);view.addEventListener('focusout',()=>hover=false);
+  ['touchstart','pointerdown','wheel','keydown'].forEach(event=>view.addEventListener(event,()=>{manualUntil=performance.now()+5000;},{passive:true}));
+  function move(direction){manualUntil=performance.now()+5000;view.scrollBy({left:direction*view.clientWidth*.7,behavior:motion.matches?'instant':'smooth'});}
+  document.getElementById('catalog-prev').addEventListener('click',()=>move(-1));document.getElementById('catalog-next').addEventListener('click',()=>move(1));
+  function frame(now){const delta=Math.min(now-last,50);last=now;const period=set.offsetWidth+parseFloat(getComputedStyle(view.firstElementChild).gap);if(!paused&&!hover&&!document.hidden&&visible&&now>manualUntil){view.scrollLeft+=delta*.035;if(view.scrollLeft>=period)view.scrollLeft-=period;}requestAnimationFrame(frame);}requestAnimationFrame(frame);
+  motion.addEventListener('change',event=>{paused=event.matches;sync();});
+})();
+
+(() => {
+  // Promotional information only. Never infer a paid purchase from a click.
+  const messages=[['Seu próximo play começa aqui','Plano de 1 mês por R$ 19,90.'],['Mais tempo para maratonar','2 meses por R$ 34,90 no total.'],['Escolha 3 meses de entretenimento','Plano completo por R$ 46,90 no total.'],['Conheça antes de contratar','Peça seu teste grátis de 6 horas pelo WhatsApp.']];
+  const box=document.getElementById('purchase-notice');let index=0,hideTimer;
+  function hide(){clearTimeout(hideTimer);box.classList.remove('shown');}
+  function show(){if(document.hidden)return;const [title,copy]=messages[index++%messages.length];document.getElementById('notice-title').textContent=title;document.getElementById('notice-copy').textContent=copy;box.classList.add('shown');hideTimer=setTimeout(hide,4000);}
+  box.querySelector('button').addEventListener('click',hide);document.addEventListener('visibilitychange',()=>{if(document.hidden)hide();});setInterval(show,20000);
+})();
